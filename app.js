@@ -22,6 +22,15 @@ const convertDbObjectToResponseObject = (dbObject) => {
     playerId: dbObject.player_id,
     playerName: dbObject.player_name,
     matchId: dbObject.match_id,
+    match: dbObject.match,
+    year: dbObject.year,
+    playerMatchId: dbObject.player_match_id,
+    score: dbObject.score,
+    fours: dbObject.fours,
+    sixes: dbObject.sixes,
+    totalScore: dbObject.totalScore,
+    totalFours: dbObject.totalFours,
+    totalSixes: dbObject.totalSixes,
   };
 };
 
@@ -70,8 +79,12 @@ app.get("/players/:playerId/matches", async (request, response) => {
   const { playerId } = request.params;
   const getPlayerMatchesQuery = `
     SELECT  match_details.match_id, match_details.match, match_details.year  FROM player_match_score INNER JOIN match_details ON player_match_score.match_id=match_details.match_id  WHERE player_id=${playerId};`;
-  const matchPlayerDetails = await db.get(getPlayerMatchesQuery);
-  response.send(convertDbObjectToResponseObject(matchPlayerDetails));
+  const matchPlayerDetails = await db.all(getPlayerMatchesQuery);
+  response.send(
+    matchPlayerDetails.map((eachMatch) =>
+      convertDbObjectToResponseObject(eachMatch)
+    )
+  );
 });
 
 //GET PLAYER BY MATCH ID API
@@ -79,8 +92,12 @@ app.get("/matches/:matchId/players", async (request, response) => {
   const { matchId } = request.params;
   const getMatchPlayerQuery = `
     SELECT player_details.player_id,player_details.player_name FROM player_match_score INNER JOIN player_details ON player_match_score.player_id=player_details.player_id WHERE match_id=${matchId};`;
-  const getPlayerMatchDetails = await db.get(getMatchPlayerQuery);
-  response.send(convertDbObjectToResponseObject(getPlayerMatchDetails));
+  const getPlayerMatchDetails = await db.all(getMatchPlayerQuery);
+  response.send(
+    getPlayerMatchDetails.map((eachPlayer) =>
+      convertDbObjectToResponseObject(eachPlayer)
+    )
+  );
 });
 
 //GET STATS API
@@ -89,6 +106,7 @@ app.get("/players/:playerId/playerScores", async (request, response) => {
   const getStatQuery = `
     SELECT player_details.player_id,player_details.player_name , sum(score) AS totalScore, sum(fours) AS totalFours , sum(sixes) AS totalSixes  FROM player_match_score INNER JOIN player_details ON player_match_score.player_id=player_details.player_id WHERE player_match_score.player_id=${playerId};`;
   const getStatDetails = await db.get(getStatQuery);
+  console.log(getStatDetails);
   response.send(convertDbObjectToResponseObject(getStatDetails));
 });
 module.exports = app;
